@@ -1570,6 +1570,14 @@
     }
 
     function exportExpertCV(expert, cvContent) {
+      const isStruct = typeof cvContent === 'object' && cvContent !== null;
+      let cvString = cvContent || "";
+      if (isStruct) {
+        const pendidikanText = (cvContent.pendidikan || []).map(p => `- ${p.jurusan} di ${p.universitas} (${p.tahunMasuk}-${p.tahunLulus})`).join("\n");
+        const pekerjaanText = (cvContent.pekerjaan || []).map(p => `- ${p.posisi} (${p.tahunMasukKeluar})\n  Deskripsi: ${p.deskripsi}`).join("\n");
+        cvString = `Pendidikan:\n${pendidikanText}\n\nPekerjaan:\n${pekerjaanText}`;
+      }
+
       const rows = [
         ["CURRICULUM VITAE TENAGA AHLI", ""],
         ["", ""],
@@ -1579,7 +1587,7 @@
         ["Rating", expert.rating],
         ["", ""],
         ["ISI CV", ""],
-        [cvContent.replace(/"/g, '""'), ""]
+        [cvString.replace(/"/g, '""'), ""]
       ];
       const csv = rows.map(r => `"${r[0]}","${r[1]}"`).join("\n");
       const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -1879,10 +1887,15 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTenders.map(t => (
-                    <tr key={t.id}>
+                  {filteredTenders.map(t => {
+                    const isNew = daysFromNow(t.tgl_pengumuman) >= -3 && daysFromNow(t.tgl_pengumuman) <= 0;
+                    return (
+                    <tr key={t.id} style={{ background: isNew ? "#f0fdf4" : undefined }}>
                       <td style={{ minWidth: 260 }}>
-                        <div style={{ fontWeight: 800, lineHeight: 1.35 }}>{t.nama}</div>
+                        <div style={{ fontWeight: 800, lineHeight: 1.35 }}>
+                          {t.nama}
+                          {isNew && <Badge color="green" style={{ marginLeft: 6 }}>Baru</Badge>}
+                        </div>
                         <div className="muted" style={{ fontSize: 11, marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}><MapPin size={12} />{t.lokasi_pekerjaan || t.provinsi}</div>
                         <div className="muted" style={{ fontSize: 10, marginTop: 2 }}>KD Tender: {t.kd_tender} | TA {t.tahun_anggaran}</div>
                       </td>
@@ -1916,7 +1929,7 @@
                       <td><Badge color={internalStatusColor[internalStatuses[t.id] || "Dipantau"]}>{internalStatuses[t.id] || "Dipantau"}</Badge></td>
                       <td><Button className="primary small" onClick={() => openTender(t.id)}>Detail<ChevronRight size={14} /></Button></td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -2156,10 +2169,15 @@
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(r => (
-                    <tr key={r.id}>
+                  {filtered.map(r => {
+                    const isNew = [102, 107, 115].includes(r.id); // Simulasi indikator RUP baru
+                    return (
+                    <tr key={r.id} style={{ background: isNew ? "#f0fdf4" : undefined }}>
                       <td style={{ minWidth: 280 }}>
-                        <div style={{ fontWeight: 800, lineHeight: 1.35 }}>{r.nama_paket}</div>
+                        <div style={{ fontWeight: 800, lineHeight: 1.35 }}>
+                          {r.nama_paket}
+                          {isNew && <Badge color="green" style={{ marginLeft: 6 }}>Baru</Badge>}
+                        </div>
                         <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>Kode RUP {r.kd_rup} - TA {r.tahun_anggaran}</div>
                       </td>
                       <td style={{ minWidth: 210 }}>
@@ -2177,7 +2195,7 @@
                       <td><CountdownBadge dateStr={r.tgl_awal_pemilihan} /></td>
                       <td><Button className="primary small" onClick={() => openRup(r.id)}>Detail<ChevronRight size={14} /></Button></td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -2504,12 +2522,72 @@
               <div style={{ fontWeight: 800, fontSize: 13 }}>Curriculum Vitae (CV)</div>
               <Button className="ghost small" onClick={() => exportExpertCV(expert, cv)}><FileDown size={14} />Export CSV / Excel</Button>
             </div>
-            <textarea
-              placeholder="Tulis atau paste isi CV tenaga ahli di sini..."
-              value={cv}
-              onChange={e => setCV(e.target.value)}
-              style={{ width: "100%", minHeight: 150, padding: 10, fontSize: 13, lineHeight: 1.5, fontFamily: "inherit" }}
-            />
+            
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 800 }}>Pendidikan</div>
+                <Button className="ghost small" onClick={() => {
+                  const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                  setCV({ ...safeCv, pendidikan: [...(safeCv.pendidikan || []), { jurusan: '', universitas: '', tahunMasuk: '', tahunLulus: '' }] });
+                }}><Plus size={14} />Tambah Pendidikan</Button>
+              </div>
+              {((typeof cv === 'object' && cv !== null ? cv.pendidikan : []) || []).map((p, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <input placeholder="Jurusan" value={p.jurusan} onChange={e => {
+                    const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                    const newPend = [...(safeCv.pendidikan || [])]; newPend[i].jurusan = e.target.value; setCV({ ...safeCv, pendidikan: newPend });
+                  }} style={{ flex: 1 }} />
+                  <input placeholder="Universitas" value={p.universitas} onChange={e => {
+                    const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                    const newPend = [...(safeCv.pendidikan || [])]; newPend[i].universitas = e.target.value; setCV({ ...safeCv, pendidikan: newPend });
+                  }} style={{ flex: 1 }} />
+                  <input placeholder="Thn Masuk" value={p.tahunMasuk} onChange={e => {
+                    const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                    const newPend = [...(safeCv.pendidikan || [])]; newPend[i].tahunMasuk = e.target.value; setCV({ ...safeCv, pendidikan: newPend });
+                  }} style={{ width: 90 }} />
+                  <input placeholder="Thn Lulus" value={p.tahunLulus} onChange={e => {
+                    const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                    const newPend = [...(safeCv.pendidikan || [])]; newPend[i].tahunLulus = e.target.value; setCV({ ...safeCv, pendidikan: newPend });
+                  }} style={{ width: 90 }} />
+                  <Button className="ghost small" onClick={() => {
+                    const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                    const newPend = (safeCv.pendidikan || []).filter((_, idx) => idx !== i); setCV({ ...safeCv, pendidikan: newPend });
+                  }}><Trash2 size={14} /></Button>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 800 }}>Pekerjaan</div>
+                <Button className="ghost small" onClick={() => {
+                  const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                  setCV({ ...safeCv, pekerjaan: [...(safeCv.pekerjaan || []), { posisi: '', tahunMasukKeluar: '', deskripsi: '' }] });
+                }}><Plus size={14} />Tambah Pekerjaan</Button>
+              </div>
+              {((typeof cv === 'object' && cv !== null ? cv.pekerjaan : []) || []).map((p, i) => (
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, paddingBottom: 12, borderBottom: "1px dashed var(--border)" }}>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input placeholder="Posisi" value={p.posisi} onChange={e => {
+                      const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                      const newPek = [...(safeCv.pekerjaan || [])]; newPek[i].posisi = e.target.value; setCV({ ...safeCv, pekerjaan: newPek });
+                    }} style={{ flex: 1 }} />
+                    <input placeholder="Tahun (Masuk - Keluar)" value={p.tahunMasukKeluar} onChange={e => {
+                      const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                      const newPek = [...(safeCv.pekerjaan || [])]; newPek[i].tahunMasukKeluar = e.target.value; setCV({ ...safeCv, pekerjaan: newPek });
+                    }} style={{ width: 180 }} />
+                    <Button className="ghost small" onClick={() => {
+                      const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                      const newPek = (safeCv.pekerjaan || []).filter((_, idx) => idx !== i); setCV({ ...safeCv, pekerjaan: newPek });
+                    }}><Trash2 size={14} /></Button>
+                  </div>
+                  <input placeholder="Deskripsi Singkat Jobdesk" value={p.deskripsi} onChange={e => {
+                    const safeCv = typeof cv === 'object' && cv !== null ? cv : { pendidikan: [], pekerjaan: [] };
+                    const newPek = [...(safeCv.pekerjaan || [])]; newPek[i].deskripsi = e.target.value; setCV({ ...safeCv, pekerjaan: newPek });
+                  }} style={{ width: "100%" }} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       );
