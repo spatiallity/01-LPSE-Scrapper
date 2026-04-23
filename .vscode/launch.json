@@ -1,0 +1,14 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Open lsi_procurement_intelligence.html",
+            "file": "d:\\OneDrive - UGM 365\\Work Stuffs\\004 Sucofindo\\05 Projects\\01 Coding\\01 LPSE Scrapper\\lsi_procurement_intelligence.html"
+        }
+    ]
+}
