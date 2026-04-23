@@ -2277,7 +2277,7 @@
     }
 
     function StatusPage({ tenders, openTender, setShowStageRef }) {
-      const nearDeadline = tenders.filter(t => t.daysLeft <= 7).slice(0, 6);
+      const followedTenders = tenders.filter(t => t.internalStatus === "Sudah Diikuti");
       return (
         <div>
           <PageTitle title="Status Tender" subtitle="Referensi tahapan untuk dua metode pengadaan dan posisi tahap berjalan untuk tender aktif." />
@@ -2290,11 +2290,11 @@
               </div>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <Button className="ghost small" onClick={() => setShowStageRef(true)}><Eye size={14} /> Referensi Tahapan</Button>
-                <Badge color="red">{nearDeadline.length} prioritas</Badge>
+                <Badge color="blue">{followedTenders.length} diikuti</Badge>
               </div>
             </div>
             <div className="grid-3">
-              {nearDeadline.map(t => (
+              {followedTenders.map(t => (
                 <div key={t.id} className="status-card" onClick={() => openTender(t.id)} style={{ cursor: "pointer" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start", marginBottom: 9 }}>
                     <Badge color={t.currentStageColor}>{t.currentStageName}</Badge>
